@@ -20,7 +20,8 @@ package PAVpointerAnalysisPackage;
 	import com.ibm.wala.ipa.cha.ClassHierarchyException;
 	import com.ibm.wala.ssa.IR;
 	import com.ibm.wala.ssa.SSACFG;
-	import com.ibm.wala.ssa.SSAGetInstruction;
+import com.ibm.wala.ssa.SSACFG.BasicBlock;
+import com.ibm.wala.ssa.SSAGetInstruction;
 	import com.ibm.wala.ssa.SSAInstruction;
 	import com.ibm.wala.ssa.SSAPutInstruction;
 	import com.ibm.wala.types.FieldReference;
@@ -35,7 +36,6 @@ package PAVpointerAnalysisPackage;
 		private String mainClass;
 		private String analysisClass;
 		private String analysisMethod;
-		
 		
 		//START: NO CHANGE REGION
 		private AnalysisScope scope;	// scope defines the set of files to be analyzed
@@ -138,6 +138,7 @@ package PAVpointerAnalysisPackage;
 			if(target!=null) {
 				System.out.println("The IR of method " + target.getMethod().getSignature() + " is:");
 				System.out.println(target.getIR().toString());
+				analyseMethod(target.getIR());
 			} else {
 				System.out.println("The given method in the given class could not be found");
 			}
@@ -147,5 +148,29 @@ package PAVpointerAnalysisPackage;
 		 * Here, you need to fill in code to complete the rest of the analysis workflow.
 		 * see project presentation and the write-up for details
 		 */
+		public PointsToGraph setupGraph(){
+			Iterator<CGNode> nodes = cg.iterator();
+			PointsToGraph result;
+			CGNode target = null;
+			while(nodes.hasNext()) {
+				CGNode node = nodes.next();
+				String nodeInfo = node.toString();
+				if(nodeInfo.contains(analysisClass) && nodeInfo.contains(analysisMethod)) {
+					target = node;
+					break;
+				}
+			}
+			if(target!=null) {
+				result = new PointsToGraph(target.getIR().getControlFlowGraph());
+			} else {
+				result = null;
+				System.out.println("The given method in the given class could not be found");
+			}
+			return result;
+		}
+		
+		public void analyseMethod(IR methodIR){
+			
+		}
 	}
 

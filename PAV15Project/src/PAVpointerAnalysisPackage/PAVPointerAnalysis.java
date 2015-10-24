@@ -71,7 +71,8 @@ public class PAVPointerAnalysis {
 		 */
 		setup.printNodes();
 		setup.printIR();
-		
+		PointsToGraph graph = setup.setupGraph();
+		System.out.print(graph.toString());
 		/*
 		 * Create appropriate objects/make appropriate function calls here to begin the analysis
 		 */

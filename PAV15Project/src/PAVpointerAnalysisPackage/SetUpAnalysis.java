@@ -23,7 +23,8 @@ package PAVpointerAnalysisPackage;
 import com.ibm.wala.ssa.SSACFG.BasicBlock;
 import com.ibm.wala.ssa.SSAGetInstruction;
 	import com.ibm.wala.ssa.SSAInstruction;
-	import com.ibm.wala.ssa.SSAPutInstruction;
+import com.ibm.wala.ssa.SSANewInstruction;
+import com.ibm.wala.ssa.SSAPutInstruction;
 	import com.ibm.wala.types.FieldReference;
 	import com.ibm.wala.util.CancelException;
 	import com.ibm.wala.util.config.AnalysisScopeReader;
@@ -36,7 +37,9 @@ import com.ibm.wala.ssa.SSAGetInstruction;
 		private String mainClass;
 		private String analysisClass;
 		private String analysisMethod;
-		
+		private PointsToGraph graph;
+		private IR ir;
+
 		//START: NO CHANGE REGION
 		private AnalysisScope scope;	// scope defines the set of files to be analyzed
 		private ClassHierarchy ch;		// Generate the class hierarchy for the scope
@@ -138,7 +141,6 @@ import com.ibm.wala.ssa.SSAGetInstruction;
 			if(target!=null) {
 				System.out.println("The IR of method " + target.getMethod().getSignature() + " is:");
 				System.out.println(target.getIR().toString());
-				analyseMethod(target.getIR());
 			} else {
 				System.out.println("The given method in the given class could not be found");
 			}
@@ -162,15 +164,52 @@ import com.ibm.wala.ssa.SSAGetInstruction;
 			}
 			if(target!=null) {
 				result = new PointsToGraph(target.getIR().getControlFlowGraph());
+				this.ir = target.getIR();
 			} else {
 				result = null;
 				System.out.println("The given method in the given class could not be found");
 			}
+			this.graph = result;
 			return result;
 		}
 		
-		public void analyseMethod(IR methodIR){
-			
+		@SuppressWarnings("unchecked")
+		public void analyseMethod(Hashtable<Integer, Set<PointsTo>> inputTable){
+			Queue<BBEdge> queue = new LinkedList<BBEdge>();
+			for (BBVertex vertex : this.graph.getBB()) {
+					queue.addAll(vertex.getEdges());
+			}
+			while(!queue.isEmpty()){
+				BBEdge edge = queue.remove();
+				if(edge.getStart().isEntryBlock()){
+					edge.setTable(inputTable);
+					edge.setMarked(false);
+				}
+				
+				List<SSAInstruction> instructions = edge.getEnd().getAllInstructions();
+				for (SSAInstruction instruction : instructions) {
+					if(instruction instanceof SSANewInstruction){
+						//Get the current table of the edge
+						Hashtable<Integer, Set<PointsTo>> table = edge.getTable();
+						
+						//Applying transfer function to the table
+						Hashtable<Integer, Set<PointsTo>> newTable = (Hashtable<Integer, Set<PointsTo>>) table.clone();
+						newTable.remove(instruction.getDef());
+						Set<PointsTo> newSet = (Set<PointsTo>) new HashSet<PointsTo>();
+						newSet.add(new PointsTo(instruction.iindex, edge.getStart().getMethod()));
+						newTable.put(instruction.getDef(), newSet);
+						
+						//Assigning the new table to successor
+						BBVertex endVertex = this.graph.getBB()[edge.getEnd().getNumber()];
+						for (BBEdge bbedge : endVertex.getEdges()) {
+							bbedge.setTable(newTable);
+						}
+						//System.out.println(instruction.iindex);
+						//System.out.println(instruction.toString(this.ir.getSymbolTable()));
+					}
+				}
+			}
+			System.out.println(this.graph.toString());
 		}
 	}
 

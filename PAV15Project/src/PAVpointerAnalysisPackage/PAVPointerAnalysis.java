@@ -73,6 +73,7 @@ public class PAVPointerAnalysis {
 		setup.printIR();
 		PointsToGraph graph = setup.setupGraph();
 		System.out.print(graph.toString());
+		setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>());
 		/*
 		 * Create appropriate objects/make appropriate function calls here to begin the analysis
 		 */
@@ -109,5 +110,7 @@ public class PAVPointerAnalysis {
 	}
 	// END: NO CHANGE REGION
 
-
+	public void analyseMethod(){
+		
+	}
 }

@@ -10,11 +10,13 @@ public class BBEdge {
 	private BasicBlock start;
 	private BasicBlock end;
 	private Hashtable<Integer, Set<PointsTo>> table;
+	private boolean isMarked;
 	
 	public BBEdge(BasicBlock startBlock, BasicBlock endBlock){
-		start = startBlock;
-		end = endBlock;
-		table = new Hashtable<Integer, Set<PointsTo>>();
+		this.start = startBlock;
+		this.end = endBlock;
+		this.table = new Hashtable<Integer, Set<PointsTo>>();
+		this.isMarked = true;
 	}
 
 	@Override
@@ -23,7 +25,7 @@ public class BBEdge {
 		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+":{");
 		Set<Integer> keys = this.table.keySet();
 		for (Integer key : keys) {
-			result.append("(v"+key+"->{");
+			result.append("(v"+key+"-> {");
 			Set<PointsTo> p = this.table.get(key);
 			for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {
 				PointsTo pto = (PointsTo) iterator.next();
@@ -60,6 +62,14 @@ public class BBEdge {
 
 	public void setTable(Hashtable<Integer, Set<PointsTo>> table) {
 		this.table = table;
+	}
+
+	public boolean isMarked() {
+		return isMarked;
+	}
+
+	public void setMarked(boolean isMarked) {
+		this.isMarked = isMarked;
 	}
 	
 }

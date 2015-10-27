@@ -2,7 +2,9 @@ package PAVpointerAnalysisPackage;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
+import com.ibm.wala.ssa.ISSABasicBlock;
 import com.ibm.wala.ssa.SSACFG;
 import com.ibm.wala.ssa.SSACFG.BasicBlock;
 
@@ -18,8 +20,12 @@ public class PointsToGraph {
 			ArrayList<BBEdge> edges = new ArrayList<BBEdge>();
 			@SuppressWarnings("rawtypes")
 			Iterator succNodes = cfg.getSuccNodes(bb);
+			List<ISSABasicBlock> exceptionSucc = cfg.getExceptionalSuccessors(bb);
 			while (succNodes.hasNext()) {
-				edges.add(new BBEdge(bb, (BasicBlock) succNodes.next()));
+				BasicBlock next = (BasicBlock) succNodes.next();
+				if(!exceptionSucc.contains(next)){
+					edges.add(new BBEdge(bb, next));
+				}
 			}
 			temp.setEdges(edges);
 			vertices[i]=temp;

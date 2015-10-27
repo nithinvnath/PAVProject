@@ -13,8 +13,8 @@ public class PointsToGraph {
 	int size;
 
 	PointsToGraph(SSACFG cfg){
-		vertices = new BBVertex[cfg.getMaxNumber()];
-		for (int i = 0; i < cfg.getMaxNumber(); i++) {
+		vertices = new BBVertex[cfg.getMaxNumber()+1];
+		for (int i = 0; i < cfg.getMaxNumber()+1; i++) {
 			BasicBlock bb = cfg.getBasicBlock(i);
 			BBVertex temp = new BBVertex(bb);
 			ArrayList<BBEdge> edges = new ArrayList<BBEdge>();

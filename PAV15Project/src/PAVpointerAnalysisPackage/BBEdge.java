@@ -24,6 +24,7 @@ public class BBEdge {
 		StringBuffer result = new StringBuffer();
 		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+":{");
 		Set<Integer> keys = this.table.keySet();
+		int i = keys.size();
 		for (Integer key : keys) {
 			result.append("(v"+key+"-> {");
 			Set<PointsTo> p = this.table.get(key);
@@ -35,6 +36,10 @@ public class BBEdge {
 				}
 			}
 			result.append("})");
+			i--;
+			if(i>0){
+				result.append(", ");
+			}
 		}
 		result.append("}\n");
 		return result.toString();

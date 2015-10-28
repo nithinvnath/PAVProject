@@ -18,6 +18,7 @@ import com.ibm.wala.ipa.callgraph.Entrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyException;
+import com.ibm.wala.shrikeBT.IConditionalBranchInstruction.Operator;
 import com.ibm.wala.ssa.IR;
 import com.ibm.wala.ssa.SSACFG;
 import com.ibm.wala.ssa.SSACFG.BasicBlock;
@@ -41,7 +42,7 @@ public class SetUpAnalysis {
 	private String analysisClass;
 	private String analysisMethod;
 	private PointsToGraph graph;
-	private IR ir;
+
 
 	//START: NO CHANGE REGION
 	private AnalysisScope scope;	// scope defines the set of files to be analyzed
@@ -50,7 +51,7 @@ public class SetUpAnalysis {
 	private AnalysisOptions options;	// Specify options for the call graph builder
 	private CallGraphBuilder builder;	// Builder object for the call graph
 	private CallGraph cg;			// Call graph for the program
-
+	private IR ir;
 
 	public SetUpAnalysis(String classpath, String mainClass, String analysisClass, String analysisMethod)
 	{
@@ -162,12 +163,12 @@ public class SetUpAnalysis {
 			String nodeInfo = node.toString();
 			if(nodeInfo.contains(analysisClass) && nodeInfo.contains(analysisMethod)) {
 				target = node;
+				this.ir = target.getIR();
 				break;
 			}
 		}
 		if(target!=null) {
 			result = new PointsToGraph(target.getIR().getControlFlowGraph());
-			this.ir = target.getIR();
 		} else {
 			result = null;
 			System.out.println("The given method in the given class could not be found");
@@ -207,8 +208,7 @@ public class SetUpAnalysis {
 		}
 		return false;
 	}
-	
-	@SuppressWarnings("unchecked")
+
 	public void analyseMethod(Hashtable<Integer, Set<PointsTo>> inputTable){
 		//Add all edges to a queue
 		Queue<BBEdge> queue = new LinkedList<BBEdge>();
@@ -226,11 +226,12 @@ public class SetUpAnalysis {
 				edge.setTable(inputTable);
 				edge.setMarked(false);
 			}
-			
+
 			boolean isIdentityTransfer = true;
-			
+
 			List<SSAInstruction> instructions = edge.getEnd().getAllInstructions();
 			for (SSAInstruction instruction : instructions) {
+
 				/* Transfer function for "new" statements */
 				if(instruction instanceof SSANewInstruction){
 					isIdentityTransfer = false;
@@ -244,25 +245,163 @@ public class SetUpAnalysis {
 					//Assigning the new table to successor
 					for (BBEdge bbedge : endVertex.getEdges()) {
 						bbedge.setTable(newTable);
+						if(!bbedge.isMarked()){
+							bbedge.setMarked(true);
+							queue.add(bbedge);
+						}
 					}
 					//System.out.println(instruction.iindex);
 					//System.out.println(instruction.toString(this.ir.getSymbolTable()));
 				}else if(instruction instanceof SSAPhiInstruction){
 					isIdentityTransfer = false;
-					
+					Hashtable<Integer, Set<PointsTo>> newTable = copy(table);
+					Hashtable<Integer, Set<PointsTo>> curTable = this.graph.getBB()[edge.getEnd().getNumber()].getEdges().get(0).getTable();
+					Enumeration<Integer> curKeys = curTable.keys();
+					while(curKeys.hasMoreElements()){
+						Integer curKey = curKeys.nextElement();
+						Set<PointsTo> newSet = new HashSet<PointsTo>(curTable.get(curKey));
+						if (newTable.get(curKey)!=null) {
+							newSet.addAll(newTable.get(curKey));
+						}
+						newTable.remove(curKey);
+						newTable.put(curKey, newSet);
+					}
+					newTable.remove(instruction.getDef());
+
+					Set<PointsTo> newVariableSet = (Set<PointsTo>) new HashSet<PointsTo>();
+
+					/*Find points of the phi node */
+					for (int i=0; i< instruction.getNumberOfUses(); ++i){
+						int u = instruction.getUse(i);
+						if (newTable.get(u)!=null) {
+							newVariableSet.addAll(newTable.get(u));
+						}
+					}
+
+					newTable.put(instruction.getDef(), newVariableSet);
+					for (BBEdge bbedge : endVertex.getEdges()) {
+						if(isDifferent(bbedge.getTable(), newTable) && !bbedge.isMarked()){
+							bbedge.setMarked(true);
+							queue.add(bbedge);
+						}else{
+							bbedge.setMarked(false);
+						}
+						bbedge.setTable(newTable);
+					}
+
+					/*CONDITIONAL BRANCHES */
+				}else if(instruction instanceof SSAConditionalBranchInstruction){
+					Hashtable<Integer, Set<PointsTo>> newTableTrue = copy(table);
+					Hashtable<Integer, Set<PointsTo>> newTableFalse = copy(table);
+
+					if (((SSAConditionalBranchInstruction) instruction).getOperator().equals(Operator.NE) || ((SSAConditionalBranchInstruction) instruction).getOperator().equals(Operator.EQ)){ 
+						ArrayList<BBEdge> edges = endVertex.getEdges();
+						BBEdge trueEdge, falseEdge;
+						if(((SSAConditionalBranchInstruction) instruction).getOperator().equals(Operator.NE)){
+							trueEdge = edges.get(0);
+							falseEdge = edges.get(1);
+						}else{
+							trueEdge = edges.get(1);
+							falseEdge = edges.get(0);
+						}
+						if(this.ir.getSymbolTable().getValue(instruction.getUse(1))!=null && this.ir.getSymbolTable().getValue(instruction.getUse(1)).isNullConstant()){
+							isIdentityTransfer=false;
+							int v = instruction.getUse(0);
+							Set<PointsTo>ptoSet =  new HashSet<PointsTo>(trueEdge.getTable().get(v));
+							boolean containsNull=false, containsNonNull=false;
+							for (PointsTo pointsTo : ptoSet) {
+								if(pointsTo.getIsNull()){
+									containsNull=true;
+									ptoSet.remove(pointsTo);
+								}else{
+									containsNonNull=true;
+								}
+							}
+							/* Join with the current table */
+							Hashtable<Integer, Set<PointsTo>> curTableTrue = trueEdge.getTable();
+							Enumeration<Integer> curKeys = curTableTrue.keys();
+							while (curKeys.hasMoreElements()) {
+								Integer key = curKeys.nextElement();
+								if(key==v){
+									continue;
+								}
+								Set<PointsTo> newSet = new HashSet<PointsTo>(curTableTrue.get(key));
+								if (newTableTrue.get(key)!=null) {
+									newSet.addAll(newTableTrue.get(key));
+								}
+								newTableTrue.remove(key);
+								newTableTrue.put(key, newSet);
+							}
+
+							Hashtable<Integer, Set<PointsTo>> curTableFalse = falseEdge.getTable();
+							Enumeration<Integer> curKeysFalse = curTableFalse.keys();
+							while (curKeysFalse.hasMoreElements()) {
+								Integer key = curKeysFalse.nextElement();
+								if(key==v){
+									continue;
+								}
+								Set<PointsTo> newSet = new HashSet<PointsTo>(curTableFalse.get(key));
+								if (newTableFalse.get(key)!=null) {
+									newSet.addAll(newTableFalse.get(key));
+								}
+								newTableFalse.remove(key);
+								newTableFalse.put(key, newSet);
+							}
+							/*End Join*/
+
+							if(containsNonNull && containsNull){
+								newTableTrue.remove(v);
+								newTableTrue.put(v, ptoSet);
+
+								trueEdge.setTable(newTableTrue);
+								if(!trueEdge.isMarked() && isDifferent(newTableTrue, curTableTrue)){
+									trueEdge.setMarked(true);
+									queue.add(trueEdge);
+								}
+
+								newTableFalse.remove(v);
+								Set<PointsTo> ptoSetFalse = new HashSet<PointsTo>();
+								ptoSetFalse.add(new PointsTo());
+								newTableFalse.put(v, ptoSetFalse);
+								falseEdge.setTable(newTableFalse);
+								if(!falseEdge.isMarked() && isDifferent(newTableFalse, curTableFalse)){
+									falseEdge.setMarked(true);
+									queue.add(falseEdge);
+								}
+							}else if(containsNonNull){
+
+								newTableTrue.remove(v);
+								newTableTrue.put(v, ptoSet);
+								trueEdge.setTable(newTableTrue);
+								if(!trueEdge.isMarked() && isDifferent(newTableTrue, curTableTrue)){
+									trueEdge.setMarked(true);
+									queue.add(trueEdge);
+								}
+
+
+							} else if (containsNull){
+								newTableFalse.remove(v);
+								Set<PointsTo> ptoSetFalse = new HashSet<PointsTo>();
+								ptoSetFalse.add(new PointsTo());
+								newTableFalse.put(v, ptoSetFalse);
+								falseEdge.setTable(newTableFalse);
+								if(!falseEdge.isMarked() && isDifferent(newTableFalse, curTableFalse)){
+									falseEdge.setMarked(true);
+									queue.add(falseEdge);
+								}
+							}
+						}
+					}
+					//instruction.
 				}
-				/*}else if(instruction instanceof SSAConditionalBranchInstruction){
-					instruction = (SSAConditionalBranchInstruction) instruction;
-
-				}else if(instruction instanceof SSAGotoInstruction){
-
-				}else{}*/
 			}
 			/* Identity transfer function */
 			if(isIdentityTransfer){
 				for (BBEdge bbedge : endVertex.getEdges()) {
-					bbedge.setMarked(true);
-					queue.add(bbedge);
+					if(!bbedge.isMarked() && isDifferent(table, bbedge.getTable())){
+						bbedge.setMarked(true);
+						queue.add(bbedge);
+					}
 					bbedge.setTable(table);
 				}
 			}

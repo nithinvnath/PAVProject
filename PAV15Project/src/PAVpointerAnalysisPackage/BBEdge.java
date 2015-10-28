@@ -66,7 +66,7 @@ public class BBEdge {
 	}
 
 	public void setTable(Hashtable<Integer, Set<PointsTo>> table) {
-		this.table = table;
+		this.table = new Hashtable<Integer, Set<PointsTo>>(table);
 	}
 
 	public boolean isMarked() {

@@ -28,7 +28,7 @@ public class PointsTo {
 	public PointsTo(){
 		this.isNull=true;
 	}
-	
+
 	//Getters and setters
 	public int getLineNumber() {
 		return lineNumber;
@@ -62,7 +62,7 @@ public class PointsTo {
 		if(isNull){
 			return "null";
 		}else{
-			return name+lineNumber;
+			return createdAt.getName().toString()+"."+name+lineNumber;
 		}
 	}
 

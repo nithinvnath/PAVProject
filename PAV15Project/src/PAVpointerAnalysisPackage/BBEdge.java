@@ -10,6 +10,7 @@ public class BBEdge {
 	private BasicBlock start;
 	private BasicBlock end;
 	private Hashtable<Integer, Set<PointsTo>> table;
+	private Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> Columns;
 	private boolean isMarked;
 	
 	public BBEdge(BasicBlock startBlock, BasicBlock endBlock){
@@ -17,6 +18,7 @@ public class BBEdge {
 		this.end = endBlock;
 		this.table = new Hashtable<Integer, Set<PointsTo>>();
 		this.isMarked = true;
+		this.Columns = new Hashtable <Integer, Hashtable<Integer, Set<PointsTo>>>();
 	}
 
 	@Override
@@ -76,5 +78,15 @@ public class BBEdge {
 	public void setMarked(boolean isMarked) {
 		this.isMarked = isMarked;
 	}
-	
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((end == null) ? 0 : end.hashCode());
+		result = prime * result + (isMarked ? 1231 : 1237);
+		result = prime * result + ((start == null) ? 0 : start.hashCode());
+		result = prime * result + ((table == null) ? 0 : table.hashCode());
+		return result;
+	}
 }

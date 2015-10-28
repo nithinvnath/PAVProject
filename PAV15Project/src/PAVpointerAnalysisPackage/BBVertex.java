@@ -28,5 +28,14 @@ public class BBVertex {
 	public void setEdges(ArrayList<BBEdge> edges) {
 		this.edges = edges;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((bb == null) ? 0 : bb.hashCode());
+		result = prime * result + ((edges == null) ? 0 : edges.hashCode());
+		return result;
+	}
 	
 }

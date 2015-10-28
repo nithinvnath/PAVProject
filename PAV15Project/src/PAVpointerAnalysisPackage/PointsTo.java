@@ -66,5 +66,15 @@ public class PointsTo {
 		}
 	}
 
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((createdAt == null) ? 0 : createdAt.getName().hashCode());
+		result = prime * result + (isNull ? 1231 : 1237);
+		result = prime * result + lineNumber;
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
+	}
 
 }

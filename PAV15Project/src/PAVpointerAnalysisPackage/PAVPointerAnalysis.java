@@ -43,10 +43,12 @@ import com.ibm.wala.ssa.analysis.ExplodedControlFlowGraph;
 public class PAVPointerAnalysis {
 
 	private SetUpAnalysis setup;	// Object to setup (check presentation)
+	private String rootMethod;
 	
 	public PAVPointerAnalysis(String classpath, String mainClass, String analysisClass, String analysisMethod)
 	{
 		setup = new SetUpAnalysis(classpath, mainClass, analysisClass, analysisMethod);
+		this.rootMethod = analysisMethod;
 	}
 	
 	public void runAnalysis() throws Exception
@@ -71,9 +73,8 @@ public class PAVPointerAnalysis {
 		 */
 		setup.printNodes();
 		setup.printIR();
-		PointsToGraph graph = setup.setupGraph();
-		System.out.print(graph.toString());
-		setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>());
+		Hashtable<Integer, Set<PointsTo>> result = setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>(), this.rootMethod);
+		System.out.println(result.toString());
 		/*
 		 * Create appropriate objects/make appropriate function calls here to begin the analysis
 		 */

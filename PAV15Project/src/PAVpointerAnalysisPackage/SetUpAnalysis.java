@@ -4,6 +4,7 @@ package PAVpointerAnalysisPackage;
 import java.io.*;
 import java.util.*;
 
+import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IField;
 import com.ibm.wala.classLoader.IMethod;
@@ -26,6 +27,7 @@ import com.ibm.wala.ssa.SSAConditionalBranchInstruction;
 import com.ibm.wala.ssa.SSAGetInstruction;
 import com.ibm.wala.ssa.SSAGotoInstruction;
 import com.ibm.wala.ssa.SSAInstruction;
+import com.ibm.wala.ssa.SSAInvokeInstruction;
 import com.ibm.wala.ssa.SSANewInstruction;
 import com.ibm.wala.ssa.SSAPhiInstruction;
 import com.ibm.wala.ssa.SSAPutInstruction;
@@ -41,8 +43,6 @@ public class SetUpAnalysis {
 	private String mainClass;
 	private String analysisClass;
 	private String analysisMethod;
-	private PointsToGraph graph;
-
 
 	//START: NO CHANGE REGION
 	private AnalysisScope scope;	// scope defines the set of files to be analyzed
@@ -51,7 +51,6 @@ public class SetUpAnalysis {
 	private AnalysisOptions options;	// Specify options for the call graph builder
 	private CallGraphBuilder builder;	// Builder object for the call graph
 	private CallGraph cg;			// Call graph for the program
-	private IR ir;
 
 	public SetUpAnalysis(String classpath, String mainClass, String analysisClass, String analysisMethod)
 	{
@@ -154,16 +153,15 @@ public class SetUpAnalysis {
 	 * Here, you need to fill in code to complete the rest of the analysis workflow.
 	 * see project presentation and the write-up for details
 	 */
-	public PointsToGraph setupGraph(){
+	public PointsToGraph setupGraph(String methodName){
 		Iterator<CGNode> nodes = cg.iterator();
 		PointsToGraph result;
 		CGNode target = null;
 		while(nodes.hasNext()) {
 			CGNode node = nodes.next();
 			String nodeInfo = node.toString();
-			if(nodeInfo.contains(analysisClass) && nodeInfo.contains(analysisMethod)) {
+			if(nodeInfo.contains(analysisClass) && nodeInfo.contains(methodName)) {
 				target = node;
-				this.ir = target.getIR();
 				break;
 			}
 		}
@@ -173,8 +171,21 @@ public class SetUpAnalysis {
 			result = null;
 			System.out.println("The given method in the given class could not be found");
 		}
-		this.graph = result;
 		return result;
+	}
+
+	public CGNode getCGNode(String methodName){
+		Iterator<CGNode> nodes = cg.iterator();
+		CGNode target = null;
+		while(nodes.hasNext()) {
+			CGNode node = nodes.next();
+			String nodeInfo = node.toString();
+			if(nodeInfo.contains(analysisClass) && nodeInfo.contains(methodName)) {
+				target = node;
+				break;
+			}
+		}
+		return target;
 	}
 
 	/* Copies the content of hash table to a new table */
@@ -209,10 +220,12 @@ public class SetUpAnalysis {
 		return false;
 	}
 
-	public void analyseMethod(Hashtable<Integer, Set<PointsTo>> inputTable){
+	public Hashtable<Integer, Set<PointsTo>> analyseMethod(Hashtable<Integer, Set<PointsTo>> inputTable, String methodName){
 		//Add all edges to a queue
+		PointsToGraph graph = setupGraph(methodName);
+		IR ir = getCGNode(methodName).getIR();
 		Queue<BBEdge> queue = new LinkedList<BBEdge>();
-		for (BBVertex vertex : this.graph.getBB()) {
+		for (BBVertex vertex : graph.getBB()) {
 			queue.addAll(vertex.getEdges());
 		}
 		//Iterate while queue is not empty
@@ -220,7 +233,7 @@ public class SetUpAnalysis {
 			BBEdge edge = queue.remove();
 			//Get the current table of the edge
 			Hashtable<Integer, Set<PointsTo>> table = edge.getTable();
-			BBVertex endVertex = this.graph.getBB()[edge.getEnd().getNumber()];
+			BBVertex endVertex = graph.getBB()[edge.getEnd().getNumber()];
 
 			if(edge.getStart().isEntryBlock()){
 				edge.setTable(inputTable);
@@ -255,7 +268,7 @@ public class SetUpAnalysis {
 				}else if(instruction instanceof SSAPhiInstruction){
 					isIdentityTransfer = false;
 					Hashtable<Integer, Set<PointsTo>> newTable = copy(table);
-					Hashtable<Integer, Set<PointsTo>> curTable = this.graph.getBB()[edge.getEnd().getNumber()].getEdges().get(0).getTable();
+					Hashtable<Integer, Set<PointsTo>> curTable = graph.getBB()[edge.getEnd().getNumber()].getEdges().get(0).getTable();
 					Enumeration<Integer> curKeys = curTable.keys();
 					while(curKeys.hasMoreElements()){
 						Integer curKey = curKeys.nextElement();
@@ -304,7 +317,7 @@ public class SetUpAnalysis {
 							trueEdge = edges.get(1);
 							falseEdge = edges.get(0);
 						}
-						if(this.ir.getSymbolTable().getValue(instruction.getUse(1))!=null && this.ir.getSymbolTable().getValue(instruction.getUse(1)).isNullConstant()){
+						if(ir.getSymbolTable().getValue(instruction.getUse(1))!=null && ir.getSymbolTable().getValue(instruction.getUse(1)).isNullConstant()){
 							isIdentityTransfer=false;
 							int v = instruction.getUse(0);
 							Set<PointsTo>ptoSet =  new HashSet<PointsTo>(trueEdge.getTable().get(v));
@@ -393,6 +406,15 @@ public class SetUpAnalysis {
 						}
 					}
 					//instruction.
+				}else if(instruction instanceof SSAInvokeInstruction){
+					CallSiteReference callSite = ((SSAInvokeInstruction) instruction).getCallSite();
+					
+					callSite.getDeclaredTarget();
+					System.out.println(instruction.toString());
+					for(int i=0;i<instruction.getNumberOfUses();++i){
+						System.out.println(instruction.getUse(i));
+					}
+					System.out.println(((SSAInvokeInstruction) instruction).getCallSite());
 				}
 			}
 			/* Identity transfer function */
@@ -406,7 +428,8 @@ public class SetUpAnalysis {
 				}
 			}
 		}
-		System.out.println(this.graph.toString());
+		System.out.println(graph.toString());
+		return graph.getBB()[ir.getExitBlock().getNumber()-1].getEdges().get(0).getTable(); //TODO Fix?
 	}
 }
 

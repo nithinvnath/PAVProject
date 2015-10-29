@@ -73,7 +73,7 @@ public class PAVPointerAnalysis {
 		 */
 		setup.printNodes();
 		setup.printIR();
-		Hashtable<Integer, Set<PointsTo>> result = setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>(), this.rootMethod);
+		PointsToGraph result = setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>(), this.rootMethod);
 		System.out.println(result.toString());
 		/*
 		 * Create appropriate objects/make appropriate function calls here to begin the analysis

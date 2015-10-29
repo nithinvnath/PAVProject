@@ -1,5 +1,7 @@
 package PAVpointerAnalysisPackage;
 
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
@@ -46,7 +48,37 @@ public class BBEdge {
 		result.append("}\n\n");
 		return result.toString();
 	}
-
+	
+	public String printColumns(HashMap<Integer, Integer> columnLabel){
+		StringBuffer result = new StringBuffer();
+		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+": \n\n");
+		Enumeration<Integer> hashKeys = columns.keys();
+		while (hashKeys.hasMoreElements()) {
+			Integer hashKey = hashKeys.nextElement();
+			result.append("C"+columnLabel.get(hashKey)+":\n");
+			Set<Integer> keys = this.columns.get(hashKey).keySet();
+			int i = keys.size();
+			for (Integer key : keys) {
+				result.append(" (v" + key + " -> {");
+				Set<PointsTo> p = this.table.get(key);
+				for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {
+					PointsTo pto = (PointsTo) iterator.next();
+					result.append(pto.toString());
+					if (iterator.hasNext()) {
+						result.append(", ");
+					}
+				}
+				result.append("})");
+				i--;
+				if (i > 0) {
+					result.append(",\n ");
+				}
+			}
+			result.append("}\n\n");
+		}
+		return result.toString();
+	}
+	
 	public BasicBlock getStart() {
 		return start;
 	}

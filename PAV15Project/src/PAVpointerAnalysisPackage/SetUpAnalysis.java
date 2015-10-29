@@ -43,7 +43,10 @@ public class SetUpAnalysis {
 	private String mainClass;
 	private String analysisClass;
 	private String analysisMethod;
-	private HashMap<String, PointsToGraph> graphHistory;
+	public HashMap<String, PointsToGraph> graphHistory;
+	public HashMap<Integer,Integer> columnLabel;
+	public HashMap<Integer,Hashtable<Integer,Set<PointsTo>>> labelToTable;
+	public int count=0;
 
 	//START: NO CHANGE REGION
 	private AnalysisScope scope;	// scope defines the set of files to be analyzed
@@ -164,6 +167,8 @@ public class SetUpAnalysis {
 		Iterator<CGNode> nodes = cg.iterator();
 		PointsToGraph result;
 		CGNode target = null;
+		this.columnLabel = new HashMap<Integer,Integer>();
+		this.labelToTable = new HashMap<Integer,Hashtable<Integer,Set<PointsTo>>>();
 		while(nodes.hasNext()) {
 			CGNode node = nodes.next();
 			String nodeInfo = node.toString();
@@ -308,6 +313,7 @@ public class SetUpAnalysis {
 
 		PointsToGraph graph = setupGraph(methodName);
 		IR ir = getCGNode(methodName).getIR();
+		System.out.println(ir);
 		Queue<BBEdge> queue = new LinkedList<BBEdge>();
 		for (BBVertex vertex : graph.getBB()) {
 			queue.addAll(vertex.getEdges());
@@ -326,6 +332,11 @@ public class SetUpAnalysis {
 					return graph;
 				}
 				joinToColumn(columnTable, inputTable, inputTable.hashCode());
+				if(!columnLabel.containsKey(inputTable.hashCode())){
+					columnLabel.put(inputTable.hashCode(),count);
+					labelToTable.put(count, inputTable);
+					count++;
+				}
 				edge.setTable(inputTable);
 				edge.setMarked(false);
 			}
@@ -351,7 +362,7 @@ public class SetUpAnalysis {
 						columnTable.put(key, newTable);
 						//Assigning the new table to successor
 						for (BBEdge bbedge : endVertex.getEdges()) {
-							bbedge.setTable(newTable);
+							bbedge.setTable(getJoinOfColumns(columnTable));
 							bbedge.setColumns(columnTable);
 							if (!bbedge.isMarked()) {
 								bbedge.setMarked(true);
@@ -579,6 +590,7 @@ public class SetUpAnalysis {
 							}
 							//(bbedge.getColumns(), newColumnTable, newColumnTable.hashCode());
 							bbedge.setColumns(newColumnTable);
+							bbedge.setTable(getJoinOfColumns(newColumnTable));
 							//System.out.println(bbedge);
 							System.out.println(graph);
 						} 
@@ -600,7 +612,7 @@ public class SetUpAnalysis {
 			}
 		}
 		//System.out.println(graph);
-		return graph; //TODO Fix?
+		return graph; 
 	}
 }
 

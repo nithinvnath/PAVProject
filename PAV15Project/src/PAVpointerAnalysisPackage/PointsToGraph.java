@@ -2,6 +2,7 @@ package PAVpointerAnalysisPackage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -53,6 +54,17 @@ public class PointsToGraph {
 			BBVertex bb = vertices[i];
 			for (BBEdge edge : bb.getEdges()) {
 				result.append(edge.toString());
+			}
+		}
+		return result.toString();
+	}
+	
+	public String printTables(HashMap<Integer, Integer> columnLabel){
+		StringBuffer result = new StringBuffer();
+		for (int i = 0; i < vertices.length; i++) {
+			BBVertex bb = vertices[i];
+			for (BBEdge edge : bb.getEdges()) {
+				result.append(edge.printColumns(columnLabel));
 			}
 		}
 		return result.toString();

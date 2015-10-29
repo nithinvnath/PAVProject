@@ -71,13 +71,65 @@ public class PAVPointerAnalysis {
 		 * For demonstration purposes, and to help you check whether Wala is setup properly, I am calling the setup.printNodes() function.
 		 * This will compute the call graph for the given program, and print out the nodes. Feel free to erase this call, or use it otherwise. 
 		 */
-		setup.printNodes();
-		setup.printIR();
+		//setup.printNodes();
+		//setup.printIR();
 		PointsToGraph result = setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>(), this.rootMethod);
 		System.out.println(result.toString());
+		writeOutput(setup.graphHistory);
+		
 		/*
 		 * Create appropriate objects/make appropriate function calls here to begin the analysis
 		 */
+	}
+	
+	private void writeOutput(HashMap<String, PointsToGraph> graphSet) throws IOException{
+		File file = new File("./ColumnOutput");
+		File file2 = new File("./JoinOutput");
+		if (!file.exists()) {
+			file.createNewFile();
+		}
+		StringBuffer output = new StringBuffer();
+		StringBuffer output2 = new StringBuffer();
+		Set<Integer> labelKeys = this.setup.columnLabel.keySet();
+		output.append("Columns: \n");
+		for (Integer lkey : labelKeys) {
+			int index = this.setup.columnLabel.get(lkey);
+			output.append("C"+index+":\n");
+			Hashtable<Integer, Set<PointsTo>> z = this.setup.labelToTable.get(index);
+			Enumeration<Integer> zkeys = z.keys();
+			while(zkeys.hasMoreElements()){
+				Integer zkey = zkeys.nextElement();
+				output.append(" {v" + zkey + " -> {");
+				Set<PointsTo> p = z.get(zkey);
+				for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {
+					PointsTo pto = (PointsTo) iterator.next();
+					output.append(pto.toString());
+					if (iterator.hasNext()) {
+						output.append(", ");
+					}
+				}output.append("}}\n");
+			}
+			//output.append(this.setup.labelToTable.get(index).toString()+"\n");
+		}
+		output.append("\n");
+		Set<String> keys = graphSet.keySet();
+		for (String key : keys) {
+			output.append("\n"+key+":\n");
+			output2.append("\n"+key+":\n");
+			output.append(graphSet.get(key).printTables(this.setup.columnLabel));
+			output2.append(graphSet.get(key).toString());
+			output.append("\n\n");
+			output2.append("\n\n");
+		}
+		FileWriter fw = new FileWriter(file.getAbsoluteFile());
+		BufferedWriter bw = new BufferedWriter(fw);
+		FileWriter fw2 = new FileWriter(file2.getAbsoluteFile());
+		BufferedWriter bw2 = new BufferedWriter(fw2);
+		bw2.write(output2.toString());
+		bw.write(output.toString());
+		bw.close();
+		bw2.close();
+		System.out.println("Written to file!");
 	}
 	
 	// START: NO CHANGE REGION
@@ -110,8 +162,4 @@ public class PAVPointerAnalysis {
 		
 	}
 	// END: NO CHANGE REGION
-
-	public void analyseMethod(){
-		
-	}
 }

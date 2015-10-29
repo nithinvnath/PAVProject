@@ -24,26 +24,26 @@ public class BBEdge {
 	@Override
 	public String toString(){
 		StringBuffer result = new StringBuffer();
-		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+":{");
+		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+":\n{");
 		Set<Integer> keys = this.table.keySet();
 		int i = keys.size();
 		for (Integer key : keys) {
-			result.append("(v"+key+"-> {");
+			result.append("(v"+key+" -> {");
 			Set<PointsTo> p = this.table.get(key);
 			for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {
 				PointsTo pto = (PointsTo) iterator.next();
 				result.append(pto.toString());
 				if(iterator.hasNext()){
-					result.append(", ");
+					result.append(",\n ");
 				}
 			}
 			result.append("})");
 			i--;
 			if(i>0){
-				result.append(", ");
+				result.append(",\n ");
 			}
 		}
-		result.append("}\n");
+		result.append("}\n\n");
 		return result.toString();
 	}
 

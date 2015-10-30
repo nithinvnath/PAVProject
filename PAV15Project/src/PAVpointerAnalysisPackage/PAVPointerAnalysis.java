@@ -71,32 +71,36 @@ public class PAVPointerAnalysis {
 		 * For demonstration purposes, and to help you check whether Wala is setup properly, I am calling the setup.printNodes() function.
 		 * This will compute the call graph for the given program, and print out the nodes. Feel free to erase this call, or use it otherwise. 
 		 */
-		//setup.printNodes();
-		//setup.printIR();
+		setup.printNodes();
+		setup.printIR();
+		setup.initializeAnalysedMethods();
 		PointsToGraph result = setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>(), this.rootMethod);
 		System.out.println(result.toString());
-		writeOutput(setup.graphHistory);
+		writeOutput(setup.analysedMethods);
 		
 		/*
 		 * Create appropriate objects/make appropriate function calls here to begin the analysis
 		 */
 	}
 	
-	private void writeOutput(HashMap<String, PointsToGraph> graphSet) throws IOException{
-		File file = new File("./ColumnOutput");
-		File file2 = new File("./JoinOutput");
+	private void writeOutput(HashMap<String, ArrayList<AnalysedMethod>> graphSet) throws IOException{
+		File file = new File("./ColumnOutput.txt");
+		File file2 = new File("./JoinOutput.txt");
 		if (!file.exists()) {
 			file.createNewFile();
 		}
 		StringBuffer output = new StringBuffer();
 		StringBuffer output2 = new StringBuffer();
-		Set<Integer> labelKeys = this.setup.columnLabel.keySet();
 		output.append("Columns: \n");
-		for (Integer lkey : labelKeys) {
-			int index = this.setup.columnLabel.get(lkey);
-			output.append("C"+index+":\n");
-			Hashtable<Integer, Set<PointsTo>> z = this.setup.labelToTable.get(index);
+
+		//i = 0, "C"+i was printed; changed to i from 1 and "C"+(i-1)
+		for(int i=0;i<setup.tableLabels.size();++i){
+			output.append("C"+(i)+":\n{");
+			Hashtable<Integer, Set<PointsTo>> z = setup.tableLabels.get(i);
 			Enumeration<Integer> zkeys = z.keys();
+			if(!zkeys.hasMoreElements()){
+				output.append("}\n");
+			}
 			while(zkeys.hasMoreElements()){
 				Integer zkey = zkeys.nextElement();
 				output.append(" {v" + zkey + " -> {");
@@ -109,18 +113,48 @@ public class PAVPointerAnalysis {
 					}
 				}output.append("}}\n");
 			}
-			//output.append(this.setup.labelToTable.get(index).toString()+"\n");
+		}
+		Set<String> keys = setup.analysedMethods.keySet(); 
+		for(String key : keys){
+			output.append("\n"+key+":\n");
+			ArrayList<AnalysedMethod> anMethod = setup.analysedMethods.get(key);
+			AnalysedMethod method = anMethod.get(0);
+			PointsToGraph mGraph = method.getGraphOutput();
+			for(int i=0; i<mGraph.size; ++i){
+				for(BBEdge edge : mGraph.getBB()[i].getEdges()){
+					output.append(edge.printColumns(setup.analysedMethods, setup.tableLabels));
+				}
+			}
 		}
 		output.append("\n");
-		Set<String> keys = graphSet.keySet();
-		for (String key : keys) {
-			output.append("\n"+key+":\n");
-			output2.append("\n"+key+":\n");
-			output.append(graphSet.get(key).printTables(this.setup.columnLabel));
-			output2.append(graphSet.get(key).toString());
-			output.append("\n\n");
-			output2.append("\n\n");
-		}
+		//Changed from here
+		
+		/*Set<String> keys2 = setup.analysedMethods.keySet(); 
+		for(String key : keys2){
+			output2.append("\n"+key+":\n\n");
+			ArrayList<AnalysedMethod> anMethod = setup.analysedMethods.get(key);
+			for(int i=0; i<anMethod.size();++i){
+
+				PointsToGraph g = anMethod.get(i).getGraphOutput();
+				Hashtable<Integer, Set<PointsTo>> joinTable = g.returnTable;
+				Enumeration<Integer> zkeys = joinTable.keys();
+				while(zkeys.hasMoreElements()){
+					Integer zkey = zkeys.nextElement();
+					output2.append(" {v" + zkey + " -> {");
+					Set<PointsTo> p = joinTable.get(zkey);
+					for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {
+						PointsTo pto = (PointsTo) iterator.next();
+						output2.append(pto.toString());
+						if (iterator.hasNext()) {
+							output2.append(", ");
+						}
+					}output2.append("}}\n");
+				}
+			}
+			
+		}*/
+		//Changed upto here
+
 		FileWriter fw = new FileWriter(file.getAbsoluteFile());
 		BufferedWriter bw = new BufferedWriter(fw);
 		FileWriter fw2 = new FileWriter(file2.getAbsoluteFile());

@@ -3,8 +3,10 @@ package PAVpointerAnalysisPackage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.ibm.wala.ssa.ISSABasicBlock;
 import com.ibm.wala.ssa.SSACFG;
@@ -13,8 +15,11 @@ import com.ibm.wala.ssa.SSACFG.BasicBlock;
 public class PointsToGraph {
 	private BBVertex[] vertices;
 	int size;
+	public int returnValIndex = -1;
+	public Hashtable<Integer, Set<PointsTo>> returnTable;
 
-	PointsToGraph(SSACFG cfg){
+	public PointsToGraph(SSACFG cfg){
+		this.size = cfg.getMaxNumber()+1;
 		vertices = new BBVertex[cfg.getMaxNumber()+1];
 		for (int i = 0; i < cfg.getMaxNumber()+1; i++) {
 			BasicBlock bb = cfg.getBasicBlock(i);
@@ -34,6 +39,15 @@ public class PointsToGraph {
 			vertices[i]=temp;
 		}
 	}
+	
+	public PointsToGraph(PointsToGraph old){
+		this.size = old.size;
+		vertices = new BBVertex[this.size];
+		for(int i=0;i<old.size;++i){
+			BBVertex newVertex = new BBVertex(old.getBB()[i]);
+			this.vertices[i]=newVertex;
+		}
+	}
 
 	public BBVertex[] getBB() {
 		return vertices;
@@ -41,10 +55,6 @@ public class PointsToGraph {
 
 	public void setBB(BBVertex[] bB) {
 		vertices = bB;
-	}
-
-	public void addVertex(){
-
 	}
 
 	@Override
@@ -58,17 +68,6 @@ public class PointsToGraph {
 		}
 		return result.toString();
 	}
-	
-	public String printTables(HashMap<Integer, Integer> columnLabel){
-		StringBuffer result = new StringBuffer();
-		for (int i = 0; i < vertices.length; i++) {
-			BBVertex bb = vertices[i];
-			for (BBEdge edge : bb.getEdges()) {
-				result.append(edge.printColumns(columnLabel));
-			}
-		}
-		return result.toString();
-	}
 
 	@Override
 	public int hashCode() {
@@ -77,6 +76,22 @@ public class PointsToGraph {
 		result = prime * result + size;
 		result = prime * result + Arrays.hashCode(vertices);
 		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof PointsToGraph))
+			return false;
+		PointsToGraph other = (PointsToGraph) obj;
+		if (size != other.size)
+			return false;
+		if (!Arrays.equals(vertices, other.vertices))
+			return false;
+		return true;
 	}
 
 }

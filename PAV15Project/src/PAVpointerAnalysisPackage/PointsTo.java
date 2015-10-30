@@ -25,6 +25,14 @@ public class PointsTo {
 		this.isNull = false;
 	}
 
+	public PointsTo(int lineNumber, String name) {
+		super();
+		this.lineNumber = lineNumber;
+		this.createdAt = null;
+		this.name = name;
+		this.isNull = false;
+	}
+	
 	public PointsTo(){
 		this.isNull=true;
 	}
@@ -70,11 +78,38 @@ public class PointsTo {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((createdAt == null) ? 0 : createdAt.getName().hashCode());
+		result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
 		result = prime * result + (isNull ? 1231 : 1237);
 		result = prime * result + lineNumber;
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		return result;
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PointsTo other = (PointsTo) obj;
+		if (createdAt == null) {
+			if (other.createdAt != null)
+				return false;
+		} else if (!createdAt.getName().equals(other.createdAt.getName()))
+			return false;
+		if (isNull != other.isNull)
+			return false;
+		if (lineNumber != other.lineNumber)
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		return true;
+	}
+	
+	
 }

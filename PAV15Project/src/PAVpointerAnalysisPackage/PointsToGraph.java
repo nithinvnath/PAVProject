@@ -2,7 +2,6 @@ package PAVpointerAnalysisPackage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -15,7 +14,7 @@ import com.ibm.wala.ssa.SSACFG.BasicBlock;
 public class PointsToGraph {
 	private BBVertex[] vertices;
 	int size;
-	public int returnValIndex = -1;
+	public ArrayList<Integer> returnValIndex;
 	public Hashtable<Integer, Set<PointsTo>> returnTable;
 
 	public PointsToGraph(SSACFG cfg){
@@ -38,6 +37,7 @@ public class PointsToGraph {
 			temp.setEdges(edges);
 			vertices[i]=temp;
 		}
+		returnValIndex = new ArrayList<Integer>();
 	}
 	
 	public PointsToGraph(PointsToGraph old){

@@ -1,11 +1,6 @@
 package PAVpointerAnalysisPackage;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Set;
-
 import com.ibm.wala.ssa.SSACFG.BasicBlock;
 
 public class BBVertex {

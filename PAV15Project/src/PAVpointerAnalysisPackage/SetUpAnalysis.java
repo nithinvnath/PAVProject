@@ -209,13 +209,34 @@ public class SetUpAnalysis {
 		while(keys.hasMoreElements()){
 			Integer key = keys.nextElement();
 			Set<PointsTo> ptoSet = source.get(key);
-			Set<PointsTo> newPtoSet = new HashSet<PointsTo>(ptoSet);
+			Set<PointsTo> newPtoSet = new HashSet<PointsTo>();
+			for(PointsTo pto : ptoSet){
+				PointsTo newpto = new PointsTo(pto);
+				newPtoSet.add(newpto);
+			}
 			result.put(key, newPtoSet);
 		}
 		return result;
 	}
 
-
+	private Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> copyCol(Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> col){
+		Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> ret = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
+		Set<Integer> keys = col.keySet();
+		for(Integer key: keys){
+			ret.put(key, copy(col.get(key)));
+		}
+		return ret;
+	}
+	
+	private Set<PointsTo> copyHashSet(Set<PointsTo> ptoSet){
+		HashSet<PointsTo> newSet = new HashSet<PointsTo>();
+		for(PointsTo pto : ptoSet){
+			PointsTo tmp = new PointsTo(pto);
+			newSet.add(tmp);
+		}
+		return newSet;
+	}
+	
 	private boolean isDifferent(Hashtable<Integer, Set<PointsTo>> oldTable, Hashtable<Integer, Set<PointsTo>> newTable){
 		if(oldTable==null && newTable ==null){
 			return false;
@@ -253,7 +274,14 @@ public class SetUpAnalysis {
 			this.tableLabels = new HashMap<Integer, Hashtable<Integer, Set<PointsTo>>>();
 			this.labelOfTable = new HashMap<Hashtable<Integer, Set<PointsTo>>, Integer>();
 		}
-		if(!this.tableLabels.containsKey(inpTable)){
+		Set<Integer> tkeys = this.tableLabels.keySet();
+		boolean tflag = false;
+		for(Integer tkey : tkeys){
+			if(this.tableLabels.get(tkey).equals(inputTable)){
+				tflag = true;
+			}
+		}
+		if(tflag==false){
 			this.tableLabels.put(count++, inpTable);
 			this.labelOfTable.put(inpTable,count-1);
 		}
@@ -298,7 +326,7 @@ public class SetUpAnalysis {
 					count++;
 				}*/
 				edge.setTable(inputTable);
-				Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = edge.getColumns();
+				Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(edge.getColumns());
 				if(curCol ==null){
 					curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
 				}
@@ -320,7 +348,7 @@ public class SetUpAnalysis {
 					while (keys.hasMoreElements()) {*/
 					//Integer key = keys.nextElement();
 					//Applying transfer function to the existing table to make newTable
-					Hashtable<Integer, Set<PointsTo>> newTable = copy(inputTable);
+					Hashtable<Integer, Set<PointsTo>> newTable = copy(edge.getTable());
 					newTable.remove(instruction.getDef());
 					Set<PointsTo> newSet = (Set<PointsTo>) new HashSet<PointsTo>();
 					newSet.add(new PointsTo(instruction.iindex, edge.getStart().getMethod()));
@@ -330,12 +358,14 @@ public class SetUpAnalysis {
 					//Assigning the new table to successor
 					for (BBEdge bbedge : endVertex.getEdges()) {
 						bbedge.setTable(newTable);
-						Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = edge.getColumns();
+						Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(edge.getColumns());
 						if(curCol ==null){
 							curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
 						}
-						curCol.remove(this.labelOfTable.get(newTable));
-						curCol.put(this.labelOfTable.get(newTable), newTable);
+						if(!curCol.isEmpty() && curCol.containsKey(this.labelOfTable.get(inputTable))){
+							curCol.remove(this.labelOfTable.get(inputTable));
+						}
+						curCol.put(this.labelOfTable.get(inputTable), newTable);
 						bbedge.setColumns(curCol);
 						edge.setMarked(false);
 						//bbedge.setColumns(columnTable);
@@ -362,9 +392,9 @@ public class SetUpAnalysis {
 						Enumeration<Integer> curKeys = curTable.keys();
 						while (curKeys.hasMoreElements()) {
 							Integer curKey = curKeys.nextElement();
-							Set<PointsTo> newSet = new HashSet<PointsTo>(curTable.get(curKey));
+							Set<PointsTo> newSet = copyHashSet(curTable.get(curKey));
 							if (newTable.get(curKey) != null) {
-								newSet.addAll(newTable.get(curKey));
+								newSet.addAll( copyHashSet(newTable.get(curKey)) );
 							}
 							newTable.remove(curKey);
 							newTable.put(curKey, newSet);
@@ -378,7 +408,7 @@ public class SetUpAnalysis {
 						int u = instruction.getUse(i);
 						if (newTable.get(u) != null) {
 							flag=1;
-							newVariableSet.addAll(newTable.get(u));
+							newVariableSet.addAll(copyHashSet(newTable.get(u)));
 						}
 					}
 					if(flag==1){
@@ -397,12 +427,12 @@ public class SetUpAnalysis {
 							bbedge.setMarked(false);
 						}
 						bbedge.setTable(newTable);
-						Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = edge.getColumns();
+						Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(edge.getColumns());
 						if(curCol ==null){
 							curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
 						}
-						curCol.remove(this.labelOfTable.get(newTable));
-						curCol.put(this.labelOfTable.get(newTable), newTable);
+						curCol.remove(this.labelOfTable.get(inputTable));
+						curCol.put(this.labelOfTable.get(inputTable), newTable);
 						bbedge.setColumns(curCol);
 //						bbedge.setColumns(columnTable);		
 					}
@@ -454,9 +484,9 @@ public class SetUpAnalysis {
 								if (curKey == v) {
 									continue;
 								}
-								Set<PointsTo> newSet = new HashSet<PointsTo>(curTableTrue.get(curKey));
+								Set<PointsTo> newSet = copyHashSet(curTableTrue.get(curKey));
 								if (newTableTrue.get(curKey) != null) {
-									newSet.addAll(newTableTrue.get(curKey));
+									newSet.addAll(copyHashSet(newTableTrue.get(curKey)));
 								}
 								newTableTrue.remove(curKey);
 								newTableTrue.put(curKey, newSet);
@@ -472,9 +502,9 @@ public class SetUpAnalysis {
 								if (curKey == v) {
 									continue;
 								}
-								Set<PointsTo> newSet = new HashSet<PointsTo>(curTableFalse.get(curKey));
+								Set<PointsTo> newSet = copyHashSet(curTableFalse.get(curKey));
 								if (newTableFalse.get(curKey) != null) {
-									newSet.addAll(newTableFalse.get(curKey));
+									newSet.addAll( copyHashSet(newTableFalse.get(curKey)) );
 								}
 								newTableFalse.remove(curKey);
 								newTableFalse.put(curKey, newSet);
@@ -510,14 +540,21 @@ public class SetUpAnalysis {
 								falseEdge.setTable(new Hashtable<Integer, Set<PointsTo>>());
 								trueEdge.setTable(newTableFalse);
 							}
-							Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = trueEdge.getColumns();
+							Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(trueEdge.getColumns());
 							if(curCol ==null){
 								curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
 							}
-							curCol.remove(this.labelOfTable.get(newTableTrue));
-							curCol.put(this.labelOfTable.get(newTableTrue), newTableTrue);
+							curCol.remove(this.labelOfTable.get(inputTable));
+							curCol.put(this.labelOfTable.get(inputTable), newTableTrue);
 							trueEdge.setColumns(curCol);
-							
+
+							Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curColF = copyCol(falseEdge.getColumns());
+							if(curColF ==null){
+								curColF = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
+							}
+							curColF.remove(this.labelOfTable.get(inputTable));
+							curColF.put(this.labelOfTable.get(inputTable), newTableFalse);
+							trueEdge.setColumns(curColF);
 							
 						}
 						//instruction.
@@ -532,27 +569,36 @@ public class SetUpAnalysis {
 						
 						//If the function call contains some arguments, add it to the table
 						String funcName = callSite.getDeclaredTarget().getName().toString();
-						Hashtable<Integer, Set<PointsTo>> newTable = copy(edge.getTable());;
+						Hashtable<Integer, Set<PointsTo>> newTable = copy(edge.getTable());
+						Hashtable<Integer, Set<PointsTo>> tmp = new Hashtable<Integer, Set<PointsTo>>();
 						for (int i = 0; i < instruction.getNumberOfUses(); i++) {
+							if(!callSite.isStatic() && i==0){
+								continue; //First argument will be 'this' for non static function calls 
+							}
 							int v = instruction.getUse(i);
 							HashSet<PointsTo> nullPointToSet = new HashSet<PointsTo>();
 							nullPointToSet.add(new PointsTo());
-							if (ir.getSymbolTable().getValue(v) == null
-									|| ir.getSymbolTable().getValue(v).isNullConstant()) {
-								newTable.remove(v);
-								newTable.put(v, nullPointToSet);
+							if (ir.getSymbolTable().getValue(v) != null
+									&& ir.getSymbolTable().getValue(v).isNullConstant()) {
+								tmp.put(v, nullPointToSet);
+								if(!newTable.containsKey(v)){
+									newTable.put(v, nullPointToSet);
+								}
 							} 
 						}
-						PointsToGraph returnGraph = analyseMethod(newTable, funcName);
+						PointsToGraph returnGraph = analyseMethod(tmp, funcName);
 						
-						if(instruction.getNumberOfDefs()!=0){
+						if(instruction.getNumberOfDefs()!=0 && instruction.getDef()!=-1){
 							Set<PointsTo> resultTable = newTable.get(instruction.getDef());
 							if(resultTable ==null){
 								resultTable = new HashSet<PointsTo>();
 							}
-							if(returnGraph.returnTable.get(returnGraph.returnValIndex)!=null){
-								resultTable.addAll(returnGraph.returnTable.get(returnGraph.returnValIndex));
+							for(Integer val : returnGraph.returnValIndex){
+								if(returnGraph.returnTable.get(val)!=null){
+									resultTable.addAll( copyHashSet(returnGraph.returnTable.get(val)));
+								}
 							}
+							
 							newTable.remove(instruction.getDef());
 							newTable.put(instruction.getDef(), resultTable);
 						}
@@ -564,19 +610,68 @@ public class SetUpAnalysis {
 								queue.add(bbedge);
 							}
 							bbedge.setTable(newTable);
-
+							Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(edge.getColumns());
+							if(curCol ==null){
+								curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
+							}
+							curCol.remove(this.labelOfTable.get(inputTable));
+							curCol.put(this.labelOfTable.get(inputTable), newTable);
+							bbedge.setColumns(curCol);
 							//System.out.println(bbedge);
 						} 
 					}
 					//System.out.println(graph);
 
 				}else if(instruction instanceof SSAReturnInstruction){
-					graph.returnTable = endVertex.getEdges().get(0).getTable();
-					if(instruction.getNumberOfUses() > 0){
-						graph.returnValIndex = instruction.getUse(0);
-					}else{
-						graph.returnValIndex = -1;
+					Hashtable<Integer, Set<PointsTo>> newTable = copy(edge.getTable());
+					//If statement is return null, we need to add v9 -> {null} to next edge
+					if(instruction.getNumberOfUses()!=0){
+						int v = instruction.getUse(0);
+						if (!newTable.containsKey(v) && ( ir.getSymbolTable().getValue(v) == null
+								|| ir.getSymbolTable().getValue(v).isNullConstant() ) ) {
+							isIdentityTransfer = false;
+							HashSet<PointsTo> nullPointToSet = new HashSet<PointsTo>();
+							nullPointToSet.add(new PointsTo());
+							newTable.put(v, nullPointToSet);
+						}
+						for (BBEdge bbedge : endVertex.getEdges()) {
+							if (!bbedge.isMarked() && isDifferent(newTable, bbedge.getTable())) {
+								bbedge.setMarked(true);
+								queue.add(bbedge);
+							}
+							bbedge.setTable(newTable);
+							Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(edge.getColumns());
+							if(curCol ==null){
+								curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
+							}
+							curCol.remove(this.labelOfTable.get(inputTable));
+							curCol.put(this.labelOfTable.get(inputTable), newTable);
+							bbedge.setColumns(curCol);
+						}
 					}
+					if (graph.returnTable==null) {
+						graph.returnTable = newTable;
+					}else{
+						HashSet<PointsTo> pointsToSet = new HashSet<PointsTo>();
+						//Join returnTable with newTable
+						Enumeration<Integer> keys = newTable.keys();
+						while(keys.hasMoreElements()){
+							Integer key = keys.nextElement();
+							pointsToSet.addAll(copyHashSet(newTable.get(key)));
+							if (graph.returnTable.containsKey(key)) {
+								pointsToSet.addAll(copyHashSet(graph.returnTable.get(key)));
+							}
+							graph.returnTable.remove(key);
+							graph.returnTable.put(key, pointsToSet);
+						}
+					}
+					if(instruction.getNumberOfUses() > 0){
+						graph.returnValIndex.add(instruction.getUse(0));
+					}
+				}else if(instruction instanceof SSAPutInstruction){
+					int v = instruction.getDef();
+					((SSAPutInstruction) instruction).getDeclaredField();
+					instruction.g
 				}
 			}
 			/* Identity transfer function */
@@ -587,6 +682,13 @@ public class SetUpAnalysis {
 						queue.add(bbedge);
 					}
 					bbedge.setTable(edge.getTable());
+					Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> curCol = copyCol(edge.getColumns());
+					if(curCol ==null){
+						curCol = new Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>>();
+					}
+					curCol.remove(this.labelOfTable.get(inputTable));
+					curCol.put(this.labelOfTable.get(inputTable), bbedge.getTable());
+					bbedge.setColumns(curCol);
 //					bbedge.setColumns(columnTable);
 				} 
 

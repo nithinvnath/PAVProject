@@ -31,7 +31,11 @@ public class BBEdge {
 		while(keys.hasMoreElements()){
 			Integer key = keys.nextElement();
 			Set<PointsTo> ptoSet = source.get(key);
-			Set<PointsTo> newPtoSet = new HashSet<PointsTo>(ptoSet);
+			Set<PointsTo> newPtoSet = new HashSet<PointsTo>();
+			for(PointsTo pto : ptoSet){
+				PointsTo newpto = new PointsTo(pto);
+				newPtoSet.add(newpto);
+			}
 			result.put(key, newPtoSet);
 		}
 		return result;
@@ -41,6 +45,7 @@ public class BBEdge {
 		this.start = old.getStart();
 		this.end = old.getEnd();
 		this.table = copy(old.getTable());
+		this.columns = old.getColumns();
 	}
 	
 	@Override
@@ -49,10 +54,7 @@ public class BBEdge {
 		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+":\n");
 		Set<Integer> keys = this.table.keySet();
 		int i = keys.size();
-		if(i==0 && this.start.getNumber()!=0){
-			result.append("bot\n\n");
-			return result.toString();
-		}
+
 		result.append("{");
 		for (Integer key : keys) {
 			result.append("(v"+key+" -> {");
@@ -76,28 +78,15 @@ public class BBEdge {
 
 	public String printColumns(HashMap<String, ArrayList<AnalysedMethod>> analysedMethods, HashMap<Integer, Hashtable<Integer, Set<PointsTo>>> tableLabels){
 		StringBuffer result = new StringBuffer();
-		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+": \n\n");
-		Set<String> keySet = analysedMethods.keySet();
-		String curMethod = this.start.getMethod().getName().toString();
-		for(String key: keySet){
-			if(key.equals(curMethod)){
-				ArrayList<AnalysedMethod> x = analysedMethods.get(curMethod);
-				for(int i=0;i<x.size();++i){
-					AnalysedMethod anMethod = x.get(i);
-					for(Integer k : tableLabels.keySet()){
-						if(tableLabels.get(k).equals(anMethod.getInputTable()) ){
-							result.append("\nC"+k+":\n");
-							break;
-						}
-						PointsToGraph graph = anMethod.getGraphOutput();
-						for(int i1=0;i1<graph.size;++i1){
-							for(BBEdge edge : graph.getBB()[i1].getEdges()){
-								if(edge.start.equals(this.start) && edge.end.equals(this.end)){
-									result.append(edge.getTable().toString()+"\n");
-								}
-							}
-						}
-					}
+		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+": \n");
+		int numColumns = this.getColumns().size();
+		for(int i=0;i<numColumns;++i){
+			Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> columnSet = this.getColumns();
+			Set<Integer> tableKeys = tableLabels.keySet();
+			for(Integer tableKey : tableKeys){
+				if(columnSet.containsKey(tableKey)){
+					result.append("C"+tableKey+":\n");
+					result.append(columnSet.get(tableKey).toString()+"\n");
 				}
 			}
 		}

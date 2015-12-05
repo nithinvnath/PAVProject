@@ -33,6 +33,14 @@ public class PointsTo {
 		this.isNull = false;
 	}
 	
+	public PointsTo(PointsTo p){
+		super();
+		this.lineNumber = p.getLineNumber();
+		this.createdAt = p.getCreateadAt();
+		this.name = p.getName();
+		this.isNull = p.getIsNull();
+	}
+	
 	public PointsTo(){
 		this.isNull=true;
 	}

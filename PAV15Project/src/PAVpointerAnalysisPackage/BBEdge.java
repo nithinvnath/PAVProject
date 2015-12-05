@@ -13,23 +13,23 @@ import com.ibm.wala.ssa.SSACFG.BasicBlock;
 public class BBEdge {
 	private BasicBlock start;
 	private BasicBlock end;
-	private Hashtable<Integer, Set<PointsTo>> table;
-	private Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> columns;
+	private Hashtable<String, Set<PointsTo>> table;
+	private Hashtable<Integer, Hashtable<String, Set<PointsTo>>> columns;
 	private boolean isMarked;
 
 	public BBEdge(BasicBlock startBlock, BasicBlock endBlock){
 		this.start = startBlock;
 		this.end = endBlock;
-		this.table = new Hashtable<Integer, Set<PointsTo>>();
+		this.table = new Hashtable<String, Set<PointsTo>>();
 		this.isMarked = true;
-		this.columns = new Hashtable <Integer, Hashtable<Integer, Set<PointsTo>>>();
+		this.columns = new Hashtable <Integer, Hashtable<String, Set<PointsTo>>>();
 	}
 	
-	private Hashtable<Integer, Set<PointsTo>> copy( Hashtable<Integer, Set<PointsTo>> source){
-		Hashtable<Integer, Set<PointsTo>> result = new  Hashtable<Integer, Set<PointsTo>>();
-		Enumeration<Integer> keys = source.keys();
+	private Hashtable<String, Set<PointsTo>> copy( Hashtable<String, Set<PointsTo>> source){
+		Hashtable<String, Set<PointsTo>> result = new  Hashtable<String, Set<PointsTo>>();
+		Enumeration<String> keys = source.keys();
 		while(keys.hasMoreElements()){
-			Integer key = keys.nextElement();
+			String key = keys.nextElement();
 			Set<PointsTo> ptoSet = source.get(key);
 			Set<PointsTo> newPtoSet = new HashSet<PointsTo>();
 			for(PointsTo pto : ptoSet){
@@ -52,12 +52,18 @@ public class BBEdge {
 	public String toString(){
 		StringBuffer result = new StringBuffer();
 		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+":\n");
-		Set<Integer> keys = this.table.keySet();
+		Set<String> keys = this.table.keySet();
 		int i = keys.size();
 
 		result.append("{");
-		for (Integer key : keys) {
-			result.append("(v"+key+" -> {");
+		for (String key : keys) {
+			String tkey;
+			if(key.length()<=2){
+				tkey ="v"+key;
+			}else{
+				tkey = key;
+			}
+			result.append("("+tkey+" -> {");
 			Set<PointsTo> p = this.table.get(key);
 			for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {
 				PointsTo pto = (PointsTo) iterator.next();
@@ -76,12 +82,12 @@ public class BBEdge {
 		return result.toString();
 	}
 
-	public String printColumns(HashMap<String, ArrayList<AnalysedMethod>> analysedMethods, HashMap<Integer, Hashtable<Integer, Set<PointsTo>>> tableLabels){
+	public String printColumns(HashMap<String, ArrayList<AnalysedMethod>> analysedMethods, HashMap<Integer, Hashtable<String, Set<PointsTo>>> tableLabels){
 		StringBuffer result = new StringBuffer();
 		result.append("BB"+this.start.getNumber()+"->BB"+this.end.getNumber()+": \n");
 		int numColumns = this.getColumns().size();
 		for(int i=0;i<numColumns;++i){
-			Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> columnSet = this.getColumns();
+			Hashtable<Integer, Hashtable<String, Set<PointsTo>>> columnSet = this.getColumns();
 			Set<Integer> tableKeys = tableLabels.keySet();
 			for(Integer tableKey : tableKeys){
 				if(columnSet.containsKey(tableKey)){
@@ -109,12 +115,12 @@ public class BBEdge {
 		this.end = end;
 	}
 
-	public Hashtable<Integer, Set<PointsTo>> getTable() {
+	public Hashtable<String, Set<PointsTo>> getTable() {
 		return table;
 	}
 
-	public void setTable(Hashtable<Integer, Set<PointsTo>> table) {
-		this.table = new Hashtable<Integer, Set<PointsTo>>(table);
+	public void setTable(Hashtable<String, Set<PointsTo>> table) {
+		this.table = new Hashtable<String, Set<PointsTo>>(table);
 	}
 
 	public boolean isMarked() {
@@ -125,11 +131,11 @@ public class BBEdge {
 		this.isMarked = isMarked;
 	}
 
-	public Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> getColumns() {
+	public Hashtable<Integer, Hashtable<String, Set<PointsTo>>> getColumns() {
 		return columns;
 	}
 
-	public void setColumns(Hashtable<Integer, Hashtable<Integer, Set<PointsTo>>> columns) {
+	public void setColumns(Hashtable<Integer, Hashtable<String, Set<PointsTo>>> columns) {
 		this.columns = columns;
 	}
 

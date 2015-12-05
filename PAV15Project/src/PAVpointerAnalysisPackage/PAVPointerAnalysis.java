@@ -74,7 +74,7 @@ public class PAVPointerAnalysis {
 		setup.printNodes();
 		setup.printIR();
 		setup.initializeAnalysedMethods();
-		PointsToGraph result = setup.analyseMethod(new Hashtable<Integer, Set<PointsTo>>(), this.rootMethod);
+		PointsToGraph result = setup.analyseMethod(new Hashtable<String, Set<PointsTo>>(), this.rootMethod);
 		System.out.println(result.toString());
 		writeOutput(setup.analysedMethods);
 		
@@ -96,13 +96,13 @@ public class PAVPointerAnalysis {
 		//i = 0, "C"+i was printed; changed to i from 1 and "C"+(i-1)
 		for(int i=0;i<setup.tableLabels.size();++i){
 			output.append("C"+(i)+":\n{");
-			Hashtable<Integer, Set<PointsTo>> z = setup.tableLabels.get(i);
-			Enumeration<Integer> zkeys = z.keys();
+			Hashtable<String, Set<PointsTo>> z = setup.tableLabels.get(i);
+			Enumeration<String> zkeys = z.keys();
 			if(!zkeys.hasMoreElements()){
 				output.append("}\n");
 			}
 			while(zkeys.hasMoreElements()){
-				Integer zkey = zkeys.nextElement();
+				String zkey = zkeys.nextElement();
 				output.append(" {v" + zkey + " -> {");
 				Set<PointsTo> p = z.get(zkey);
 				for (Iterator<PointsTo> iterator = p.iterator(); iterator.hasNext();) {

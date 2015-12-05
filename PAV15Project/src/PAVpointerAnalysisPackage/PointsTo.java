@@ -14,7 +14,7 @@ public class PointsTo {
 	private IMethod	createdAt;
 	private String name;
 	private boolean isNull;
-
+	private String field;
 
 	//Constructor
 	public PointsTo(int lineNumber, IMethod createadAt) {
@@ -23,6 +23,7 @@ public class PointsTo {
 		this.createdAt = createadAt;
 		this.name = "new";
 		this.isNull = false;
+		this.field="";
 	}
 
 	public PointsTo(int lineNumber, String name) {
@@ -31,6 +32,7 @@ public class PointsTo {
 		this.createdAt = null;
 		this.name = name;
 		this.isNull = false;
+		this.field="";
 	}
 	
 	public PointsTo(PointsTo p){
@@ -39,6 +41,7 @@ public class PointsTo {
 		this.createdAt = p.getCreateadAt();
 		this.name = p.getName();
 		this.isNull = p.getIsNull();
+		this.field = p.getField();
 	}
 	
 	public PointsTo(){
@@ -73,12 +76,26 @@ public class PointsTo {
 		this.isNull = isNull;
 	}
 
+	public String getField() {
+		return field;
+	}
+
+	public void setField(String field) {
+		this.field = field;
+	}
+
 	@Override
 	public String toString() {
+		
 		if(isNull){
 			return "null";
 		}else{
-			return createdAt.getName().toString()+"."+name+lineNumber;
+			String ret = createdAt.getName().toString()+"."+name+lineNumber;
+			if(this.field.equals("")){
+				return ret;
+			}else{
+				return ret+"."+this.field;
+			}
 		}
 	}
 

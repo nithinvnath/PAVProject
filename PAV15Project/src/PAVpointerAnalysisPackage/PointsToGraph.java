@@ -15,7 +15,7 @@ public class PointsToGraph {
 	private BBVertex[] vertices;
 	int size;
 	public ArrayList<Integer> returnValIndex;
-	public Hashtable<Integer, Set<PointsTo>> returnTable;
+	public Hashtable<String, Set<PointsTo>> returnTable;
 
 	public PointsToGraph(SSACFG cfg){
 		this.size = cfg.getMaxNumber()+1;
